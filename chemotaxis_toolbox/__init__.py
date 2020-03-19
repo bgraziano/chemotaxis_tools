@@ -1,10 +1,4 @@
-import numpy as np, pandas as pd
-from skimage import measure
-from math import sqrt, pi
-pd.options.mode.chained_assignment = None # suppress waring messages for in-place dataframe edits
-
 #--------
-
 # The functions in this block are not intended to be directly user-accessible, but are instead dependencies of those functions.
 
 def validate_dataframe(df):
@@ -25,9 +19,12 @@ def validate_dataframe(df):
         Rows are deleted where collisions occurred.
 
     """
+    import pandas as pd, numpy as np
+    pd.options.mode.chained_assignment = None # suppress waring messages for in-place dataframe edits
     assert type(df) is pd.DataFrame, 'Values must be formatted as a Pandas DataFrame!'
     assert type(df['Cell_line'][0]) is str, '"Cell_line" column entries must be strings!'
     assert type(int(df['Experiment_number'][0])) is int, '"Experiment_number" column entries must be integers!'
+    df['Experiment_number'] = df['Experiment_number'].astype(int)
     assert type(int(df['Cell_number'][0])) is int, '"Cell_number" column entries must be integers!'
     assert type(int(df['Time'][0])) is int, '"Time" column entries must be integers!'
     assert type(df['x'][0]) is np.float64, '"x" column entries must be floats!'
@@ -69,6 +66,9 @@ def get_uv_pos(uv_img, scaling_factor):
         length, as specified by the "scaling_factor" parameter.
 
     """
+    import numpy as np
+    from math import sqrt, pi
+    from skimage import measure
     assert type(uv_img) is np.ndarray, '"UV_img" must be a numpy array!'
     assert len(uv_img.shape) == 2, '"UV_img" must be a single x-y plane!'
     assert len(np.unique(uv_img)) == 2, '"UV_img" must be binary!'
@@ -101,6 +101,7 @@ def get_relative_time(df):
         'Relative_time' column.
 
     """
+    import numpy as np
     df = validate_dataframe(df)
     id_list = df['id'].unique()
     df['Relative_time'] = df['Time']
@@ -183,6 +184,7 @@ def resolve_collisions(df, min_timepoints):
         Rows are deleted where collisions occurred.
 
     """
+    import pandas as pd
     df = validate_dataframe(df)
     assert min_timepoints >= 3, 'The value of the "min_timepoints" must be 3 or greater!'
     assert min_timepoints < len(df['Time'].unique()) - 3, 'The value of "min_timepoints" is set too high!'
@@ -238,6 +240,7 @@ def remove_slow_cells(df, min_displacement, scaling_factor): # Removes cells wit
         are not satisfied. All data for a unique cell 'id' are removed.
 
     """
+    import numpy as np, pandas as pd
     df = validate_dataframe(df)
     assert type(float(min_displacement)) is float, '"min_displacement" must be an integer!'
     assert type(float(scaling_factor)) is float, '"scaling_factor" must be a float!'
@@ -295,6 +298,7 @@ def remove_uv_cells(df, uv_img, min_timepoints, scaling_factor):
         are not satisfied. All data for a unique cell 'id' are removed.
 
     """
+    import pandas as pd
     assert min_timepoints >= 3, 'The value of the "min_timepoints" must be 3 or greater!'
     assert type(float(scaling_factor)) is float, '"scaling_factor" must be a float!'
     df = validate_dataframe(df)
@@ -375,6 +379,7 @@ def get_chemotaxis_stats(df, uv_img, scaling_factor):
         'Velocity', 'Angular_persistence', and 'Directed_velocity' columns.
 
     """
+    import pandas as pd
     df = validate_dataframe(df)
     uv_stats = get_uv_pos(uv_img, scaling_factor)
     time_step = int(df['Time'].diff().mode()) # for calculating velocity, etc. later on
@@ -427,6 +432,7 @@ def get_chemotaxis_stats_by_interval(df, uv_img, scaling_factor):
         same units as the 'Time' column of the input DataFrame.
 
     """
+    import numpy as np, pandas as pd
     df = validate_dataframe(df)
     assert len(df[df['Time'] == 0]) > 0, ''
     ap_collection = pd.DataFrame(columns=[])
