@@ -1,0 +1,11 @@
+Metadata-Version: 1.2
+Name: chemotaxis-toolbox
+Version: 0.1
+Summary: Functions for analyzing data from cell migration assays
+Home-page: https://github.com/bgraziano/chemotaxis_toolbox
+Author: Brian Graziano
+Author-email: brgrazian@gmail.com
+License: MIT
+Description: UNKNOWN
+Platform: UNKNOWN
+Requires-Python: >=3.7
