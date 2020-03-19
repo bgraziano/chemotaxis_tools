@@ -1,10 +1,4 @@
-import numpy as np, pandas as pd
-from skimage import measure
-from math import sqrt, pi
-pd.options.mode.chained_assignment = None # suppress waring messages for in-place dataframe edits
-
 #--------
-
 # The functions in this block are not intended to be directly user-accessible, but are instead dependencies of those functions.
 
 def validate_dataframe(df):
@@ -25,6 +19,8 @@ def validate_dataframe(df):
         Rows are deleted where collisions occurred.
 
     """
+    import numpy as np
+    pd.options.mode.chained_assignment = None # suppress waring messages for in-place dataframe edits
     assert type(df) is pd.DataFrame, 'Values must be formatted as a Pandas DataFrame!'
     assert type(df['Cell_line'][0]) is str, '"Cell_line" column entries must be strings!'
     assert type(int(df['Experiment_number'][0])) is int, '"Experiment_number" column entries must be integers!'
@@ -69,6 +65,9 @@ def get_uv_pos(uv_img, scaling_factor):
         length, as specified by the "scaling_factor" parameter.
 
     """
+    import numpy as np
+    from math import sqrt, pi
+    from skimage import measure
     assert type(uv_img) is np.ndarray, '"UV_img" must be a numpy array!'
     assert len(uv_img.shape) == 2, '"UV_img" must be a single x-y plane!'
     assert len(np.unique(uv_img)) == 2, '"UV_img" must be binary!'
@@ -101,6 +100,7 @@ def get_relative_time(df):
         'Relative_time' column.
 
     """
+    import numpy as np
     df = validate_dataframe(df)
     id_list = df['id'].unique()
     df['Relative_time'] = df['Time']
@@ -427,6 +427,7 @@ def get_chemotaxis_stats_by_interval(df, uv_img, scaling_factor):
         same units as the 'Time' column of the input DataFrame.
 
     """
+    import numpy as np
     df = validate_dataframe(df)
     assert len(df[df['Time'] == 0]) > 0, ''
     ap_collection = pd.DataFrame(columns=[])
