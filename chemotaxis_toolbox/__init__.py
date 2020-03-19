@@ -19,7 +19,7 @@ def validate_dataframe(df):
         Rows are deleted where collisions occurred.
 
     """
-    import numpy as np
+    import numpy as np, pandas as pd
     pd.options.mode.chained_assignment = None # suppress waring messages for in-place dataframe edits
     assert type(df) is pd.DataFrame, 'Values must be formatted as a Pandas DataFrame!'
     assert type(df['Cell_line'][0]) is str, '"Cell_line" column entries must be strings!'
