@@ -1,5 +1,5 @@
 import pandas as pd, numpy as np
-from chemotaxis_toolbox.support import *
+from chemotaxis_tools.support import *
 pd.options.mode.chained_assignment = None # suppress waring messages for in-place dataframe edits
 
 def resolve_collisions(df, min_timepoints):
