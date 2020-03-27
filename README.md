@@ -1,2 +1,2 @@
-# chemotaxis_toolbox
+# chemotaxis_tools
 functions for analyzing data from cell migration assays
