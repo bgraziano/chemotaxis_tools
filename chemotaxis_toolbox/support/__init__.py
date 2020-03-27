@@ -73,6 +73,7 @@ def get_uv_pos(uv_img, scaling_factor):
     center = [list(r.weighted_centroid) for r in measure.regionprops(uv_img_labeled, intensity_image=uv_img)]
     assert len(area) == len(center) == 1, '"UV_img" must contain only one object (i.e., the UV light source)'
     center = np.asarray(center); y = center[0][0]; x = center[0][1]
+    y = uv_img.shape[1] - y # need to 'flip' this value since rows are labeled top-to-bottom
     radius = sqrt(area[0] / pi) * scaling_factor
     return x, y, radius
 
