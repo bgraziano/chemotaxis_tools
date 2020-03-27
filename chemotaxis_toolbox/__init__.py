@@ -4,12 +4,13 @@ pd.options.mode.chained_assignment = None # suppress waring messages for in-plac
 
 def resolve_collisions(df, min_timepoints):
     """
-    Removes tracks where two cells collided and are segmented as one object rather than
-    two unique objects. Collisions are identified by checking each unique 'id' to
-    determine whether there are any idividual timepoints for which there are two objects
-    associated with a single 'id' (i.e., two cells collided and split apart at a later
-    time). In such cases, data for all timepoints on and after the collision event are
-    removed for that 'id'. 'id' values are determined in the 'validate_dataframe' function.
+    Removes tracks where two cells collided, are segmented as one object, then later split
+    apart. Collisions are identified by checking each unique 'id' to determine whether
+    there are any idividual timepoints for which there are two objects associated with a
+    single 'id' (i.e., two cells collided, split apart at a later time, but each retain
+    the same object label). In such cases, data for all timepoints on and after the
+    splitting event (following the initial collision) are removed for that 'id'. 'id'
+    values are assigned in the 'validate_dataframe' function.
 
     Parameters
     ----------
@@ -235,7 +236,7 @@ def get_chemotaxis_stats(df, uv_img, scaling_factor):
     df['y_from_center'] = uv_stats[1] - df['y']
     df.reset_index(drop=True, inplace=True)
     df_out = get_ap_vel(df, time_step, scaling_factor)
-    df_out.loc[df['Relative_time'] == 0, ['Angular_persistence', 'Velocity', 'Directed_velocity']] = '' # Clear data since velocity, etc. can't be calculated for first timepoint.
+    df_out.loc[df['Relative_time'] == 0, ['Angular_persistence', 'Velocity', 'Directed_velocity']] = np.NaN # Clear data since velocity, etc. can't be calculated for first timepoint.
     df_out.reset_index(drop=True, inplace=True)
     return df_out
 
@@ -324,3 +325,37 @@ def get_chemotaxis_stats_by_interval(df, uv_img, scaling_factor):
     ap_collection['Cell_num'] = cell_list; vel_collection['Cell_num'] = cell_list; dir_vel_collection['Cell_num'] = cell_list
     ap_collection.set_index('Cell_num', inplace=True); vel_collection.set_index('Cell_num', inplace=True); dir_vel_collection.set_index('Cell_num', inplace=True)
     return vel_collection, ap_collection, dir_vel_collection
+
+def plot_tracks(df, uv_img):
+    import matplotlib.pyplot as plt
+    from matplotlib import rcParams
+    from matplotlib.patches import Circle
+    df = validate_dataframe(df)
+    uv_x, uv_y, uv_radius = get_uv_pos(uv_img, 1)
+    rcParams['font.family'] = 'Arial'
+    rcParams['font.size'] = 14
+    rcParams['lines.linewidth'] = 1
+    plot_list = df['Cell_line'].unique()
+    fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(13, 6))
+    for pos, item in enumerate(plot_list):
+        plot_table = df[['Cell_line', 'Time', 'id', 'x', 'y']]
+        plot_table = plot_table[plot_table['Cell_line'] == item]
+        plot_table_x = plot_table.pivot(index='Time', columns='id', values='x')
+        plot_table_y = plot_table.pivot(index='Time', columns='id', values='y')
+        if pos == 0:
+            ax1.set_title(item + ' cell tracks')
+            ax1.set(xlabel='X', ylabel='Y')
+            ax1.plot(plot_table_x, plot_table_y)
+            uv_circle = Circle((uv_x, uv_y),uv_radius, alpha=0.3, color='purple')
+            ax1.add_patch(uv_circle)
+        if pos == 1:
+            ax2.set_title(item + ' cell tracks')
+            ax2.set(xlabel='X')
+            ax2.plot(plot_table_x, plot_table_y)
+            uv_circle = Circle((uv_x, uv_y),uv_radius, alpha=0.3, color='purple')
+            ax2.add_patch(uv_circle)
+        if pos > 1:
+            print('Only two cell lines can be plotted at once. Skipping the remaining lines.')
+            continue
+    plt.show()
+    return
