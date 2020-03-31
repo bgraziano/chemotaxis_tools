@@ -1,9 +1,12 @@
 import pandas as pd, numpy as np
+import datetime, os
+from pathlib import Path
 
 def validate_dataframe(df):
     """
-    Verifies that input dataframe is formatted properly. Also creates a unique cell 'id'
-    for each cell track.
+    Verifies that input dataframe is formatted properly and creates a unique cell 'id' for
+    each cell track. Also creates a text file for logging analysis steps if it is the first
+    time this function has been called on a given dataframe.
 
     Parameters
     ----------
@@ -30,8 +33,26 @@ def validate_dataframe(df):
     df.reset_index(drop=True, inplace=True)
     try:
         len(df['id'])
-    except: # assigns a unique 'cell_id' to each cell track
-        df['id'] = df['Cell_line'] + '_' + df['Experiment_number'].astype(str) + '_' + df['Cell_number'].astype(str)
+    except:
+        df['id'] = df['Cell_line'] + '_' + df['Experiment_number'].astype(str) + '_' + df['Cell_number'].astype(str) # assigns a unique 'cell_id' to each cell track
+
+        # Initializes log file for recording analysis steps of subsequent functions.
+        homedir = os.path.expanduser('~')
+        write_location = Path(homedir, 'chemotaxis logs/')
+        if not os.path.exists(write_location):
+            os.mkdir(write_location)
+            print('New directory for log files created at: "' + str(write_location) + '"')
+        time = datetime.datetime.now().strftime('%H_%M_%S')
+        time_text = datetime.datetime.now().strftime('%H:%M:%S')
+        date = datetime.datetime.now().strftime('%Y-%m-%d')
+        log_file_name = 'chemotaxis analysis log ' + date + ' ' + time + '.txt'
+        try:
+            logfile = open(write_location / log_file_name, 'x')
+            print('New log file "' + log_file_name + '" created at "' + str(write_location) + '"')
+        except:
+            logfile = open(write_location / log_file_name, 'a')
+        logfile.write('Analysis was performed on ' + date + ' at ' + time_text + ' on cell lines ' + str(df['Cell_line'].unique()) + ':\n\n')
+        logfile.close()
     return df
 
 def get_uv_pos(uv_img, scaling_factor):
@@ -147,3 +168,17 @@ def get_ap_vel(df, time_step, scaling_factor): # Calculates 'angular persistence
     df['Velocity'] = (diff_df['x']**2 + diff_df['y']**2)**0.5 * scaling_factor / time_step
     df['Directed_velocity'] = df['Velocity'] * df['Angular_persistence']
     return df
+
+def update_log(summary_string):
+    homedir = os.path.expanduser('~')
+    write_location = Path(homedir, 'chemotaxis logs')
+    file_list = []
+    for root, dirs, files in os.walk(write_location, topdown=False): # Generate a list of all files in the log directory
+        for name in files:
+            file_list.append(os.path.join(root, name))
+    log_file_name = file_list[-1] # Get the most recent file that was written
+    logfile = open(write_location / log_file_name, 'a')
+    time = datetime.datetime.now().strftime('%H:%M:%S')
+    logfile.write(time + '   ' + summary_string + '\n\n')
+    logfile.close()
+    return

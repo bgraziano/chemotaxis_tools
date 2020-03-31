@@ -2,7 +2,7 @@ import pandas as pd, numpy as np
 from chemotaxis_tools.support import *
 pd.options.mode.chained_assignment = None # suppress waring messages for in-place dataframe edits
 
-def resolve_collisions(df, min_timepoints):
+def remove_collisions(df, min_timepoints):
     """
     Removes tracks where two cells collided, are segmented as one object, then later split
     apart. Collisions are identified by checking each unique 'id' to determine whether
@@ -49,6 +49,8 @@ def resolve_collisions(df, min_timepoints):
         if len(sub_table) <= min_timepoints:
             df = df[df['id'] != item]
     df.reset_index(drop=True, inplace=True)
+    data_string = 'The "remove_collisions" function was called. Cell tracks containing fewer than "' + str(min_timepoints) + '" time points were deleted.'
+    update_log(data_string)
     return df
 
 def remove_slow_cells(df, min_displacement, scaling_factor): # Removes cells with max displacement is below set value. Useful for removing dead cells or debris
@@ -103,6 +105,9 @@ def remove_slow_cells(df, min_displacement, scaling_factor): # Removes cells wit
         if current_cell.Displacement.max() >= min_displacement:
             df_out = df_out.append(current_cell.iloc[:frame_num], ignore_index=True, sort=False)
     df_out.drop(columns=['Displacement'], inplace=True)
+    data_string = ('The "remove_slow_cells" function was called. Cell tracks having a maximum displacement less than "'
+        + str(min_displacement) + '" were deleted. A scale factor of "' + str(scaling_factor) + '" was used for (x,y) conversion.')
+    update_log(data_string)
     return df_out
 
 def remove_uv_cells(df, uv_img, min_timepoints, scaling_factor):
@@ -186,6 +191,9 @@ def remove_uv_cells(df, uv_img, min_timepoints, scaling_factor):
         sub_table = df[df['id'] == item]
         if len(sub_table) <= min_timepoints:
             df = df[df['id'] != item]
+    data_string = ('The "remove_uv_cells" function was called. Cell tracks containing fewer than "' + str(min_timepoints)
+        + '" time points were deleted. A scale factor of "' + str(scaling_factor) + '" was used for (x,y) conversion.')
+    update_log(data_string)
     return df
 
 def get_chemotaxis_stats(df, uv_img, scaling_factor):
@@ -238,6 +246,8 @@ def get_chemotaxis_stats(df, uv_img, scaling_factor):
     df_out = get_ap_vel(df, time_step, scaling_factor)
     df_out.loc[df['Relative_time'] == 0, ['Angular_persistence', 'Velocity', 'Directed_velocity']] = np.NaN # Clear data since velocity, etc. can't be calculated for first timepoint.
     df_out.reset_index(drop=True, inplace=True)
+    data_string = ('The "get_chemotaxis_stats" function was called. A scale factor of "' + str(scaling_factor) + '" was used for (x,y) conversion.')
+    update_log(data_string)
     return df_out
 
 def get_chemotaxis_stats_by_interval(df, uv_img, scaling_factor):
@@ -296,7 +306,7 @@ def get_chemotaxis_stats_by_interval(df, uv_img, scaling_factor):
         ap_table = df[df['id'] == item]
         ap_table.reset_index(drop=True, inplace=True)
         total_time_intervals = np.amax(ap_table['Relative_time'].values) // original_time_step // 2
-        assert len(ap_table) == len(ap_table['Relative_time'].unique()), 'Duplicate entries present. Resolve collisions before running this function.'
+        assert len(ap_table) == len(ap_table['Relative_time'].unique()), 'Duplicate entries present. Remove collisions before running this function.'
         assert total_time_intervals == (len(ap_table) - 1) // 2, 'Check time intervals!'
 
         for interval in np.arange(total_time_intervals + 1)[-total_time_intervals:]:
@@ -324,6 +334,8 @@ def get_chemotaxis_stats_by_interval(df, uv_img, scaling_factor):
 
     ap_collection['Cell_num'] = cell_list; vel_collection['Cell_num'] = cell_list; dir_vel_collection['Cell_num'] = cell_list
     ap_collection.set_index('Cell_num', inplace=True); vel_collection.set_index('Cell_num', inplace=True); dir_vel_collection.set_index('Cell_num', inplace=True)
+    data_string = ('The "get_chemotaxis_stats_by_interval" function was called. A scale factor of "' + str(scaling_factor) + '" was used for (x,y) conversion.')
+    update_log(data_string)
     return vel_collection, ap_collection, dir_vel_collection
 
 def plot_tracks(df, uv_img):
