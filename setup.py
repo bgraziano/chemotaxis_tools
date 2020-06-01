@@ -11,7 +11,7 @@ setup_parameters = dict(
       author_email='brgrazian@gmail.com',
       license='MIT',
       packages=['chemotaxis_tools'],
-      install_requires=['numpy>=1.17.2', 'scikit-image>=0.15.0', 'pandas>=1.0.2'],
+      install_requires=['numpy>=1.17.2', 'scikit-image>=0.15.0', 'pathlib>=1.0.1', 'pandas>=1.0.2'],
       include_package_data=True,
       zip_safe=False,
       python_requires='>=3.7',
