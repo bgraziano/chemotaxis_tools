@@ -163,10 +163,27 @@ def get_ap_vel(df, time_step, scaling_factor): # Calculates 'angular persistence
     diff_df = df[['x', 'y', 'x_from_center', 'y_from_center']].diff()
     dot_product = df['x_from_center'] * diff_df['x_from_center'] + df['y_from_center'] * diff_df['y_from_center']
     magnitude = (df['x_from_center']**2 + df['y_from_center']**2)**0.5 * (diff_df['x_from_center']**2 + diff_df['y_from_center']**2)**0.5
-    cosines = dot_product / magnitude
-    df['Angular_persistence'] = cosines * -1
+    df['Angular_persistence'] = dot_product / magnitude * -1
     df['Velocity'] = (diff_df['x']**2 + diff_df['y']**2)**0.5 * scaling_factor / time_step
     df['Directed_velocity'] = df['Velocity'] * df['Angular_persistence']
+    return df
+
+def get_dir_ac(df, time_step, scaling_factor):
+    """
+    """
+    diff_df = df[['x', 'y']].diff()
+    shift_df = df[['x','y']].shift(-1)
+    diff_shift_df = diff_df[['x', 'y']].shift(-1)
+    dot_product_1 = df['x'] * diff_df['x'] + df['y'] * diff_df['y']
+    magnitude_1 = (df['x']**2 + df['y']**2)**0.5 * (diff_df['x']**2 + diff_df['y']**2)**0.5
+    cosines_1 = dot_product_1 / magnitude_1 * -1
+    dot_product_2 = shift_df['x'] * diff_shift_df['x'] + shift_df['y'] * diff_shift_df['y']
+    magnitude_2 = (shift_df['x']**2 + shift_df['y']**2)**0.5 * (diff_shift_df['x']**2 + diff_shift_df['y']**2)**0.5
+    cosines_2 = dot_product_2 / magnitude_2 * -1
+    df['ap1'] = cosines_1
+    df['ap2'] = cosines_2
+    df['ap_differences'] = cosines_2 - cosines_1
+
     return df
 
 def update_log(summary_string):

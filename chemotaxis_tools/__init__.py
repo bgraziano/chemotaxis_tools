@@ -49,7 +49,7 @@ def remove_collisions(df, min_timepoints):
         if len(sub_table) <= min_timepoints:
             df = df[df['id'] != item]
     df.reset_index(drop=True, inplace=True)
-    data_string = 'The "remove_collisions" function was called. Cell tracks containing fewer than "' + str(min_timepoints) + '" time points were deleted.'
+    data_string = '"remove_collisions" was called. Cell tracks containing fewer than "' + str(min_timepoints) + '" time points were deleted.'
     update_log(data_string)
     return df
 
@@ -105,7 +105,7 @@ def remove_slow_cells(df, min_displacement, scaling_factor): # Removes cells wit
         if current_cell.Displacement.max() >= min_displacement:
             df_out = df_out.append(current_cell.iloc[:frame_num], ignore_index=True, sort=False)
     df_out.drop(columns=['Displacement'], inplace=True)
-    data_string = ('The "remove_slow_cells" function was called. Cell tracks having a maximum displacement less than "'
+    data_string = ('"remove_slow_cells" was called. Cell tracks having a maximum displacement less than "'
         + str(min_displacement) + '" were deleted. A scale factor of "' + str(scaling_factor) + '" was used for (x,y) conversion.')
     update_log(data_string)
     return df_out
@@ -191,7 +191,7 @@ def remove_uv_cells(df, uv_img, min_timepoints, scaling_factor):
         sub_table = df[df['id'] == item]
         if len(sub_table) <= min_timepoints:
             df = df[df['id'] != item]
-    data_string = ('The "remove_uv_cells" function was called. Cell tracks containing fewer than "' + str(min_timepoints)
+    data_string = ('"remove_uv_cells" was called. Cell tracks containing fewer than "' + str(min_timepoints)
         + '" time points were deleted. A scale factor of "' + str(scaling_factor) + '" was used for (x,y) conversion.')
     update_log(data_string)
     return df
@@ -246,7 +246,7 @@ def get_chemotaxis_stats(df, uv_img, scaling_factor):
     df_out = get_ap_vel(df, time_step, scaling_factor)
     df_out.loc[df['Relative_time'] == 0, ['Angular_persistence', 'Velocity', 'Directed_velocity']] = np.NaN # Clear data since velocity, etc. can't be calculated for first timepoint.
     df_out.reset_index(drop=True, inplace=True)
-    data_string = ('The "get_chemotaxis_stats" function was called. A scale factor of "' + str(scaling_factor) + '" was used for (x,y) conversion.')
+    data_string = ('"get_chemotaxis_stats" was called. A scale factor of "' + str(scaling_factor) + '" was used for (x,y) conversion.')
     update_log(data_string)
     return df_out
 
@@ -291,6 +291,7 @@ def get_chemotaxis_stats_by_interval(df, uv_img, scaling_factor):
     assert len(df[df['Time'] == 0]) > 0, ''
     ap_collection = pd.DataFrame(columns=[])
     vel_collection = pd.DataFrame(columns=[])
+    dir_ratio_collection = pd.DataFrame(columns=[])
     uv_stats = get_uv_pos(uv_img, scaling_factor) # Gets the size and location of UV light circle. This is used later for removing cells that enter this area
     original_time_step = int(df['Time'].diff().mode())
     try:
@@ -302,12 +303,20 @@ def get_chemotaxis_stats_by_interval(df, uv_img, scaling_factor):
     cell_list = df['id'].unique()
 
     for pos, item in enumerate(cell_list):
-        mean_ap_list = []; mean_vel_list = []
+        mean_ap_list = []; mean_vel_list = []; mean_dir_ratio_list = []
         ap_table = df[df['id'] == item]
+
         ap_table.reset_index(drop=True, inplace=True)
         total_time_intervals = np.amax(ap_table['Relative_time'].values) // original_time_step // 2
         assert len(ap_table) == len(ap_table['Relative_time'].unique()), 'Duplicate entries present. Remove collisions before running this function.'
         assert total_time_intervals == (len(ap_table) - 1) // 2, 'Check time intervals!'
+
+        # Determine cumulative distance traveled by each cell for calculation of 'directionality ratio'
+        next_xy = ap_table[['x', 'y']].diff()
+        ap_table['Distance_from_start'] = (next_xy['x']**2 + next_xy['y']**2)**0.5
+        ap_table['Cumulative_distance_px'] = ap_table['Distance_from_start'].cumsum()
+        ap_table['Cumulative_distance_px'][0] = '0'
+        ap_table.drop(columns=['Distance_from_start'], inplace=True)
 
         for interval in np.arange(total_time_intervals + 1)[-total_time_intervals:]:
             index_list = []
@@ -316,27 +325,36 @@ def get_chemotaxis_stats_by_interval(df, uv_img, scaling_factor):
             sub_table = ap_table.iloc[index_list]
             time_step = interval * original_time_step
             sub_table = get_ap_vel(sub_table, time_step, scaling_factor)
+            sub_table['delta_Distance_px'] = sub_table['Cumulative_distance_px'].diff()
+            sub_next_xy = sub_table[['x', 'y']].diff()
+            sub_table['Displacement_px'] = (sub_next_xy['x']**2 + sub_next_xy['y']**2)**0.5
+            sub_table['Directionality_ratio'] = sub_table['Displacement_px'] / sub_table['delta_Distance_px']
             sub_table.drop(index=np.arange(interval), inplace=True)
             mean_ap_list.append(sub_table['Angular_persistence'].mean())
             mean_vel_list.append(sub_table['Velocity'].mean())
+            mean_dir_ratio_list.append(sub_table['Directionality_ratio'].mean())
 
         ap_collection = ap_collection.append(pd.DataFrame(data=mean_ap_list).transpose())
         vel_collection = vel_collection.append(pd.DataFrame(data=mean_vel_list).transpose())
+        dir_ratio_collection = dir_ratio_collection.append(pd.DataFrame(data=mean_dir_ratio_list).transpose())
         print('Cell ' + str(pos + 1) + ' of ' + str(len(cell_list)) + ' done.', end='\r')
 
     ap_collection.columns = (np.arange(len(ap_collection.columns)) + 1) * original_time_step
     ap_collection.columns = ap_collection.columns.astype(str)
     vel_collection.columns = (np.arange(len(vel_collection.columns)) + 1) * original_time_step
     vel_collection.columns = vel_collection.columns.astype(str)
+    dir_ratio_collection.columns = (np.arange(len(dir_ratio_collection.columns)) + 1) * original_time_step
+    dir_ratio_collection.columns = dir_ratio_collection.columns.astype(str)
     dir_vel_collection = pd.DataFrame(columns=[])
     for col in ap_collection.columns:
         dir_vel_collection[col] = ap_collection[col] * vel_collection[col]
 
-    ap_collection['Cell_num'] = cell_list; vel_collection['Cell_num'] = cell_list; dir_vel_collection['Cell_num'] = cell_list
-    ap_collection.set_index('Cell_num', inplace=True); vel_collection.set_index('Cell_num', inplace=True); dir_vel_collection.set_index('Cell_num', inplace=True)
-    data_string = ('The "get_chemotaxis_stats_by_interval" function was called. A scale factor of "' + str(scaling_factor) + '" was used for (x,y) conversion.')
+    ap_collection['Cell_num'] = cell_list; vel_collection['Cell_num'] = cell_list; dir_vel_collection['Cell_num'] = cell_list; dir_ratio_collection['Cell_num'] = cell_list
+    ap_collection.set_index('Cell_num', inplace=True); vel_collection.set_index('Cell_num', inplace=True)
+    dir_vel_collection.set_index('Cell_num', inplace=True); dir_ratio_collection.set_index('Cell_num', inplace=True)
+    data_string = ('"get_chemotaxis_stats_by_interval" was called. A scale factor of "' + str(scaling_factor) + '" was used for (x,y) conversion.')
     update_log(data_string)
-    return vel_collection, ap_collection, dir_vel_collection
+    return vel_collection, ap_collection, dir_vel_collection, dir_ratio_collection
 
 def plot_tracks(df, uv_img):
     import matplotlib.pyplot as plt
