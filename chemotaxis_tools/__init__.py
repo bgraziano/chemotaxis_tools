@@ -247,9 +247,9 @@ def get_chemotaxis_stats_by_interval(df, uv_img, scaling_factor, dir_ratio=False
     Similar to the "get_chemotaxis_stats" function, calculates 'Angular_persistence',
     'Velocity', and 'Directed_velocity'. However, for a given cell, these values are
     calculated across multiple time intervals i, where i ranges from 1 to the maximum
-    number of time intervals divided by 2. For each i, the mean value is determined for
-    each metric. The overall approach is similar in spirit to how mean-squared
-    displacement is calculated for a particle undergoing diffusion.
+    number of time intervals. For each i, the mean value is determined for each metric.
+    The overall approach is similar in spirit to how mean-squared displacement is
+    calculated for a particle undergoing diffusion.
 
     Parameters
     ----------
@@ -304,9 +304,9 @@ def get_chemotaxis_stats_by_interval(df, uv_img, scaling_factor, dir_ratio=False
         ap_table = df[df['id'] == item]
 
         ap_table.reset_index(drop=True, inplace=True)
-        total_time_intervals = np.amax(ap_table['Relative_time'].values) // original_time_step // 2
+        total_time_intervals = np.amax(ap_table['Relative_time'].values) // original_time_step
         assert len(ap_table) == len(ap_table['Relative_time'].unique()), 'Duplicate entries present. Remove collisions before running this function.'
-        assert total_time_intervals == (len(ap_table) - 1) // 2, 'Check time intervals!'
+        assert total_time_intervals == (len(ap_table) - 1), 'Check time intervals!'
 
         # Determine cumulative distance traveled by each cell for calculation of 'directionality ratio'
         next_xy = ap_table[['x', 'y']].diff()
