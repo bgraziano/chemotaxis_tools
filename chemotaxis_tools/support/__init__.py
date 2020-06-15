@@ -31,8 +31,7 @@ def validate_dataframe(df):
     assert type(df['y'][0]) is np.float64, '"y" column entries must be floats!'
     df.sort_values(by=['Cell_line', 'Experiment_number', 'Cell_number'], inplace=True)
     df.reset_index(drop=True, inplace=True)
-    try:
-        len(df['id'])
+    try: len(df['id'])
     except:
         df['id'] = df['Cell_line'] + '_' + df['Experiment_number'].astype(str) + '_' + df['Cell_number'].astype(str) # assigns a unique 'cell_id' to each cell track
 
@@ -49,8 +48,7 @@ def validate_dataframe(df):
         try:
             logfile = open(write_location / log_file_name, 'x')
             print('New log file "' + log_file_name + '" created at "' + str(write_location) + '"')
-        except:
-            logfile = open(write_location / log_file_name, 'a')
+        except: logfile = open(write_location / log_file_name, 'a')
         logfile.write('Analysis was performed on ' + date + ' at ' + time_text + ' on cell lines ' + str(df['Cell_line'].unique()) + ':\n\n')
         logfile.close()
     return df
@@ -168,31 +166,21 @@ def get_ap_vel(df, time_step, scaling_factor): # Calculates 'angular persistence
     df['Directed_velocity'] = df['Velocity'] * df['Angular_persistence']
     return df
 
-def get_dir_ac(df, time_step, scaling_factor):
-    """
-    """
-    diff_df = df[['x', 'y']].diff()
-    shift_df = df[['x','y']].shift(-1)
-    diff_shift_df = diff_df[['x', 'y']].shift(-1)
-    dot_product_1 = df['x'] * diff_df['x'] + df['y'] * diff_df['y']
-    magnitude_1 = (df['x']**2 + df['y']**2)**0.5 * (diff_df['x']**2 + diff_df['y']**2)**0.5
-    cosines_1 = dot_product_1 / magnitude_1 * -1
-    dot_product_2 = shift_df['x'] * diff_shift_df['x'] + shift_df['y'] * diff_shift_df['y']
-    magnitude_2 = (shift_df['x']**2 + shift_df['y']**2)**0.5 * (diff_shift_df['x']**2 + diff_shift_df['y']**2)**0.5
-    cosines_2 = dot_product_2 / magnitude_2 * -1
-    df['ap1'] = cosines_1
-    df['ap2'] = cosines_2
-    df['ap_differences'] = cosines_2 - cosines_1
-
-    return df
-
 def update_log(summary_string):
+    """
+    Generates a log file in user's home directory containing functions run and the
+    values for each parameter that were used.
+
+    Parameters
+    ----------
+    summary_string: string
+        Text to be written to the log file.
+    """
     homedir = os.path.expanduser('~')
     write_location = Path(homedir, 'chemotaxis logs')
     file_list = []
     for root, dirs, files in os.walk(write_location, topdown=False): # Generate a list of all files in the log directory
-        for name in files:
-            file_list.append(os.path.join(root, name))
+        for name in files: file_list.append(os.path.join(root, name))
     log_file_name = file_list[-1] # Get the most recent file that was written
     logfile = open(write_location / log_file_name, 'a')
     time = datetime.datetime.now().strftime('%H:%M:%S')

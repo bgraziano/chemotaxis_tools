@@ -46,7 +46,8 @@ def remove_collisions(df, min_timepoints):
             df.drop(index=drop_index, inplace=True)
     for item in df['id'].unique():
         sub_table = df[df['id'] == item]
-        if len(sub_table) <= min_timepoints: df = df[df['id'] != item]
+        if len(sub_table) <= min_timepoints:
+            df = df[df['id'] != item]
     df.reset_index(drop=True, inplace=True)
     data_string = '"remove_collisions" was called. Cell tracks containing fewer than "' + str(min_timepoints) + '" time points were deleted.'
     update_log(data_string)
@@ -101,7 +102,8 @@ def remove_slow_cells(df, min_displacement, scaling_factor): # Removes cells wit
         init_x = current_cell['x'].iloc[0]
         init_y = current_cell['y'].iloc[0]
         current_cell['Displacement'] = ((current_cell['x'] - init_x)**2 + (current_cell['y'] - init_y)**2)**0.5 * scaling_factor
-        if current_cell.Displacement.max() >= min_displacement: df_out = df_out.append(current_cell.iloc[:frame_num], ignore_index=True, sort=False)
+        if current_cell.Displacement.max() >= min_displacement:
+            df_out = df_out.append(current_cell.iloc[:frame_num], ignore_index=True, sort=False)
     df_out.drop(columns=['Displacement'], inplace=True)
     data_string = ('"remove_slow_cells" was called. Cell tracks having a maximum displacement less than "'
         + str(min_displacement) + '" were deleted. A scale factor of "' + str(scaling_factor) + '" was used for (x,y) conversion.')
@@ -153,8 +155,10 @@ def remove_uv_cells(df, uv_img, min_timepoints, scaling_factor):
     df = validate_dataframe(df)
     uv_stats = get_uv_pos(uv_img, scaling_factor)
     time_step = int(df['Time'].diff().mode())
-    try: len(df['Relative_time'])
-    except: df = get_relative_time(df)
+    try:
+        len(df['Relative_time'])
+    except:
+        df = get_relative_time(df)
 
     # For a given track, remove all timepoints where cell is inside the UV circle
     df['Distance_to_target'] =  ((df['x'] - uv_stats[0])**2 + (df['y'] - uv_stats[1])**2)**0.5 * scaling_factor
@@ -163,7 +167,8 @@ def remove_uv_cells(df, uv_img, min_timepoints, scaling_factor):
     # Removes all cells whose starting positions were already inside the UV circle
     for item in df['id'].unique():
         sub_table = df[df['id'] == item]
-        if len(sub_table[sub_table['Relative_time'] == 0]) == 0: df = df[df['id'] != item]
+        if len(sub_table[sub_table['Relative_time'] == 0]) == 0:
+            df = df[df['id'] != item]
     df.reset_index(drop=True, inplace=True)
 
     # After above steps, there may be broken tracks if a cell travelled into the UV circle but then left again at a later time.
@@ -184,7 +189,8 @@ def remove_uv_cells(df, uv_img, min_timepoints, scaling_factor):
     # after trimming back cell tracks that enter the UV circle, this further removes cells not present for a user-set minimum number of time points.
     for item in df['id'].unique():
         sub_table = df[df['id'] == item]
-        if len(sub_table) <= min_timepoints: df = df[df['id'] != item]
+        if len(sub_table) <= min_timepoints:
+            df = df[df['id'] != item]
     data_string = ('"remove_uv_cells" was called. Cell tracks containing fewer than "' + str(min_timepoints)
         + '" time points were deleted. A scale factor of "' + str(scaling_factor) + '" was used for (x,y) conversion.')
     update_log(data_string)
@@ -230,8 +236,10 @@ def get_chemotaxis_stats(df, uv_img, scaling_factor):
     df = validate_dataframe(df)
     uv_stats = get_uv_pos(uv_img, scaling_factor)
     time_step = int(df['Time'].diff().mode()) # for calculating velocity, etc. later on
-    try: len(df['Relative_time'])
-    except: df = get_relative_time(df)
+    try:
+        len(df['Relative_time'])
+    except:
+        df = get_relative_time(df)
     df['x_from_center'] = uv_stats[0] - df['x']
     df['y_from_center'] = uv_stats[1] - df['y']
     df.reset_index(drop=True, inplace=True)
@@ -242,7 +250,7 @@ def get_chemotaxis_stats(df, uv_img, scaling_factor):
     update_log(data_string)
     return df_out
 
-def get_chemotaxis_stats_by_interval(df, uv_img, scaling_factor, dir_ratio=False):
+def get_chemotaxis_stats_by_interval(df, uv_img, scaling_factor):
     """
     Similar to the "get_chemotaxis_stats" function, calculates 'Angular_persistence',
     'Velocity', and 'Directed_velocity'. However, for a given cell, these values are
@@ -270,13 +278,6 @@ def get_chemotaxis_stats_by_interval(df, uv_img, scaling_factor, dir_ratio=False
         pipeline with other functions in this toolbox, ensure that the same real units of
         length are used in all cases (e.g., everything is coverted to microns).
 
-    dir_ratio: boolean
-        Setting to 'True' will additionally calculate the 'Directionality_ratio' for each
-        cell track. 'Directionality_ratio' is determined at each time interval: the
-        displacement of the cell from its position at the beginning of the
-        time interval is divided by the distance travelled by the cell during the time
-        interval.
-
     Returns
     -------
     output: Three DataFrames
@@ -293,8 +294,10 @@ def get_chemotaxis_stats_by_interval(df, uv_img, scaling_factor, dir_ratio=False
     dir_ratio_collection = pd.DataFrame(columns=[])
     uv_stats = get_uv_pos(uv_img, scaling_factor) # Gets the size and location of UV light circle. This is used later for removing cells that enter this area
     original_time_step = int(df['Time'].diff().mode())
-    try: len(df['Relative_time'])
-    except: df = get_relative_time(df)
+    try:
+        len(df['Relative_time'])
+    except:
+        df = get_relative_time(df)
     df['x_from_center'] = uv_stats[0] - df['x']
     df['y_from_center'] = uv_stats[1] - df['y']
     cell_list = df['id'].unique()
@@ -322,58 +325,38 @@ def get_chemotaxis_stats_by_interval(df, uv_img, scaling_factor, dir_ratio=False
             sub_table = ap_table.iloc[index_list]
             time_step = interval * original_time_step
             sub_table = get_ap_vel(sub_table, time_step, scaling_factor)
-            if dir_ratio == True:
-                sub_table['delta_Distance_px'] = sub_table['Cumulative_distance_px'].diff()
-                sub_next_xy = sub_table[['x', 'y']].diff()
-                sub_table['Displacement_px'] = (sub_next_xy['x']**2 + sub_next_xy['y']**2)**0.5
-                sub_table['Directionality_ratio'] = sub_table['Displacement_px'] / sub_table['delta_Distance_px']
+            sub_table['delta_Distance_px'] = sub_table['Cumulative_distance_px'].diff()
+            sub_next_xy = sub_table[['x', 'y']].diff()
+            sub_table['Displacement_px'] = (sub_next_xy['x']**2 + sub_next_xy['y']**2)**0.5
+            sub_table['Directionality_ratio'] = sub_table['Displacement_px'] / sub_table['delta_Distance_px']
             sub_table.drop(index=np.arange(interval), inplace=True)
             mean_ap_list.append(sub_table['Angular_persistence'].mean())
             mean_vel_list.append(sub_table['Velocity'].mean())
-            if dir_ratio == True: mean_dir_ratio_list.append(sub_table['Directionality_ratio'].mean())
+            mean_dir_ratio_list.append(sub_table['Directionality_ratio'].mean())
 
         ap_collection = ap_collection.append(pd.DataFrame(data=mean_ap_list).transpose())
         vel_collection = vel_collection.append(pd.DataFrame(data=mean_vel_list).transpose())
-        if dir_ratio == True: dir_ratio_collection = dir_ratio_collection.append(pd.DataFrame(data=mean_dir_ratio_list).transpose())
+        dir_ratio_collection = dir_ratio_collection.append(pd.DataFrame(data=mean_dir_ratio_list).transpose())
         print('Cell ' + str(pos + 1) + ' of ' + str(len(cell_list)) + ' done.', end='\r')
 
     ap_collection.columns = (np.arange(len(ap_collection.columns)) + 1) * original_time_step
     ap_collection.columns = ap_collection.columns.astype(str)
     vel_collection.columns = (np.arange(len(vel_collection.columns)) + 1) * original_time_step
     vel_collection.columns = vel_collection.columns.astype(str)
-    if dir_ratio == True:
-        dir_ratio_collection.columns = (np.arange(len(dir_ratio_collection.columns)) + 1) * original_time_step
-        dir_ratio_collection.columns = dir_ratio_collection.columns.astype(str)
+    dir_ratio_collection.columns = (np.arange(len(dir_ratio_collection.columns)) + 1) * original_time_step
+    dir_ratio_collection.columns = dir_ratio_collection.columns.astype(str)
     dir_vel_collection = pd.DataFrame(columns=[])
-    for col in ap_collection.columns: dir_vel_collection[col] = ap_collection[col] * vel_collection[col]
+    for col in ap_collection.columns:
+        dir_vel_collection[col] = ap_collection[col] * vel_collection[col]
 
     ap_collection['Cell_num'] = cell_list; vel_collection['Cell_num'] = cell_list; dir_vel_collection['Cell_num'] = cell_list; dir_ratio_collection['Cell_num'] = cell_list
     ap_collection.set_index('Cell_num', inplace=True); vel_collection.set_index('Cell_num', inplace=True)
     dir_vel_collection.set_index('Cell_num', inplace=True); dir_ratio_collection.set_index('Cell_num', inplace=True)
     data_string = ('"get_chemotaxis_stats_by_interval" was called. A scale factor of "' + str(scaling_factor) + '" was used for (x,y) conversion.')
     update_log(data_string)
-    if dir_ratio == True: return vel_collection, ap_collection, dir_vel_collection, dir_ratio_collection
-    else: return vel_collection, ap_collection, dir_vel_collection
+    return vel_collection, ap_collection, dir_vel_collection, dir_ratio_collection
 
 def plot_tracks(df, uv_img):
-    """
-    Displays x-y plots (in units of pixels) for each cell track in the dataframe.
-    Different plots are created for each unique 'Cell_line'. However, if there are > 2
-    unique values for 'Cell_line', only the first 2 (by alphabetical order) are plotted.
-
-    Parameters
-    ----------
-    df: DataFrame
-        Must include columns labeled 'Time', 'Experiment_number', 'Cell_line',
-        'Cell_number', 'x', and 'y'. 'Time', 'Experiment_number', and 'Cell_number', must
-        be series of integers; 'Cell_line' must be a series of strings; 'x' and 'y' must
-        be series of floats. IMPORTANT: Ensure that 'x' and 'y' are in units of pixels.
-
-    uv_img: ndarray
-        A 2d binary image (x-y) containing the mask of the UV light projected by the DMD.
-        The mask of the UV light should be a single continuous object, and there should
-        be no other objects aside from the UV mask.
-    """
     import matplotlib.pyplot as plt
     from matplotlib import rcParams
     from matplotlib.patches import Circle
